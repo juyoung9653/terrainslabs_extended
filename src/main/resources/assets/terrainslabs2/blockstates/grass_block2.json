@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "snowy=false": {
+      "model": "terrainslabs2:block/grass_block2"
+    },
+    "snowy=true": {
+      "model": "terrainslabs2:block/grass_block2_snow"
+    }
+  }
+}
