@@ -14,6 +14,17 @@ public final class GrassSlabHelper {
 
     private GrassSlabHelper() {}
 
+    private static boolean isExposedToAir(ServerLevel level, BlockPos pos) {
+        return (
+            level.getBlockState(pos.above()).isAir() ||
+            level.getBlockState(pos.below()).isAir() ||
+            level.getBlockState(pos.north()).isAir() ||
+            level.getBlockState(pos.south()).isAir() ||
+            level.getBlockState(pos.east()).isAir() ||
+            level.getBlockState(pos.west()).isAir()
+        );
+    }
+
     private static Block grassSlabCache = null;
 
     public static Block getGrassSlab() {
@@ -37,10 +48,13 @@ public final class GrassSlabHelper {
         Terrainslabs2Config config = Terrainslabs2Config.load();
         int depth = Math.max(1, config.dirtDepth);
         boolean chainGrassBlock = config.convertDirtUnderGrassBlock;
+        boolean skipDirtOnStone = config.skipDirtOnStone;
+        int minScanY = config.minScanY;
 
         int minX = chunkX << 4;
         int minZ = chunkZ << 4;
-        int minY = level.getMinY();
+        int worldMinY = level.getMinY();
+        int minY = Math.max(worldMinY, minScanY);
         Heightmap heightmap = chunk.getOrCreateHeightmapUnprimed(
             Heightmap.Types.MOTION_BLOCKING
         );
@@ -69,13 +83,27 @@ public final class GrassSlabHelper {
                             state.hasProperty(GrassBlock2.SNOWY) &&
                             state.getValue(GrassBlock2.SNOWY);
 
+                        boolean isSlab = state.is(grassSlab);
+
                         for (int d = 1; d <= depth; d++) {
                             int by = y - d;
                             if (by < minY) break;
-                            BlockState belowState = chunk.getBlockState(
-                                pos.set(x, by, z)
-                            );
+                            pos.set(x, by, z);
+                            BlockState belowState = chunk.getBlockState(pos);
                             if (!belowState.is(Blocks.DIRT)) break;
+                            // 반블록 아래 첫 흙은 무조건 변환. 그 외는 공기 노출 확인
+                            if (
+                                !(isSlab && d == 1) &&
+                                !isExposedToAir(level, pos)
+                            ) break;
+                            // 돌 위 흙은 변환 안 함
+                            if (skipDirtOnStone) {
+                                BlockState underBelow = chunk.getBlockState(
+                                    pos.set(x, by - 1, z)
+                                );
+                                if (underBelow.is(Blocks.STONE)) break;
+                                pos.set(x, by, z);
+                            }
                             chunk.setBlockState(
                                 pos,
                                 Terrainslabs2Mod.GRASS_BLOCK2.defaultBlockState().setValue(

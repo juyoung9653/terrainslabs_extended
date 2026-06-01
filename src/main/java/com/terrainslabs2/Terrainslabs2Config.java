@@ -25,6 +25,14 @@ public final class Terrainslabs2Config {
     @Expose
     public boolean convertDirtUnderGrassBlock = true;
 
+    // true: 흙 아래가 돌(stone)이면 변환하지 않음
+    @Expose
+    public boolean skipDirtOnStone = true;
+
+    // y좌표 탐색 최소값. 이 값 미만은 스캔하지 않음 (성능 최적화)
+    @Expose
+    public int minScanY = 60;
+
     private Terrainslabs2Config() {}
 
     public static Terrainslabs2Config load() {
